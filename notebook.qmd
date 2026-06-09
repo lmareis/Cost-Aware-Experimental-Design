@@ -72,9 +72,9 @@ The Sachs dataset [@Sachs2005] records $n = 853$ simultaneous expression levels 
 
 ```{r, message = FALSE, warning = FALSE}
 library(knitr)
-#download.file("https://zenodo.org/records/7681811/files/sachs.zip?download=1",
-#              "sachs.zip", mode = "wb")
-#unzip("sachs.zip", files = "Data Files/cd3cd28.csv")
+download.file("https://zenodo.org/records/7681811/files/sachs.zip?download=1",
+              "sachs.zip", mode = "wb")
+unzip("sachs.zip", files = "Data Files/cd3cd28.csv")
 cd3cd28   <- read.csv(file.path("Data Files", "cd3cd28.csv"))
 Sachs_mat <- as.matrix(cd3cd28)
 n         <- nrow(Sachs_mat)
