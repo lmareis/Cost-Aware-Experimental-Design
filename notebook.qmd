@@ -9,18 +9,6 @@ authors:
     orcid: 0000-0001-5614-3025
     affiliation: "Technical University of Munich"
     country: Germany
-header-includes: |
-  <style>
-  p {
-    text-align: justify;
-  }
-  </style>
-format:
-  html:
-    toc: true
-    toc-location: right
-    toc-expand: true
-    toc-depth: 3
 ---
 
 # Cost-Aware Optimized Front-Door Experimental Design
