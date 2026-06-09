@@ -22,7 +22,7 @@ header-includes: |
 | Resource | Information |
 |----|----|
 | Data DOI | [10.5281/zenodo.7681811](https://doi.org/10.5281/zenodo.7681811) |
-| Git + DOI | [Git](https://github.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design/blob/CleaR2026/README.md) [10.5281/zenodo.18960268](https://doi.org/10.5281/zenodo.18960268) |
+| Git + DOI | [Git](https://github.com/lmareis/Cost-Aware-Experimental-Design) [10.5281/zenodo.20613058](https://doi.org/10.5281/zenodo.20613058) |
 | Paper | [arXiv](https://arxiv.org/abs/2603.22024) |
 | Paper Code | [Git](https://github.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design) [10.5281/zenodo.18960268](https://zenodo.org/doi/10.5281/zenodo.18960268)|
 | Short Description | Demonstration of the optimized experimental design for subsequent causal effect estimation of @Mareis_Drton_2026 on the Sachs protein-signalling dataset. |
