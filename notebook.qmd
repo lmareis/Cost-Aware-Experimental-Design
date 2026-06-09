@@ -1,82 +1,281 @@
 ---
-bibliography: references.bib 
-authors: # see https://quarto.org/docs/journals/authors.html for further options
-  - name: Firstname Lastname
-    orcid: 0000-0001-0002-0003
-    affiliation: "Your University"
-    country: CountryABC
+bibliography: references.bib
+authors:
+  - name: Leopold Mareis
+    orcid: 0000-0002-2624-6522
+    affiliation: "Technical University of Munich"
+    country: Germany
+  - name: Mathias Drton
+    orcid: 0000-0001-5614-3025
+    affiliation: "Technical University of Munich"
+    country: Germany
+header-includes: |
+  <style>
+  p {
+    text-align: justify;
+  }
+  </style>
 ---
 
-# Your Notebook Name
+# Cost-Aware Optimized Front-Door Experimental Design
 
 | Resource | Information |
 |----|----|
-| Data DOI | [10.5281/zenodo.1234567](https://doi.org/10.5281/zenodo.17598199) |
-| Git + DOI | [Git](https://github.com/MaRDI4NFDI/GMCI_notebook_template/tree/683067d4f2c2d7e83f221e7bfbb0ae9b77aa93a5) [10.5281/zenodo.17598199](https://doi.org/10.5281/zenodo.17598199) |
-| Short Description | Short description of the main contributions and notebook structure |
+| Data DOI | [10.5281/zenodo.7681811](https://doi.org/10.5281/zenodo.7681811) |
+| Git + DOI | [Git](https://github.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design/blob/CleaR2026/README.md) [10.5281/zenodo.18960268](https://doi.org/10.5281/zenodo.18960268) |
+| Paper | [arXiv](https://arxiv.org/abs/2603.22024) |
+| Paper Code | [Git](https://github.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design) [10.5281/zenodo.18960268](https://zenodo.org/doi/10.5281/zenodo.18960268)|
+| Short Description | Demonstration of the optimized experimental design for subsequent causal effect estimation of @Mareis_Drton_2026 on the Sachs protein-signalling dataset. |
 
 : {.striped}
 
 ## Introduction
 
-Write an introduction to the analysis. Give references via @Mareis_Haug_Drton_2025. The bibtex entries are saved in `references.bib`.
+The Sachs dataset records expression levels provides in human T cells and is accompanied by a validated ground-truth causal DAG recovered through targeted perturbation experiments [@Sachs2005; @2208.08247]. In this notebook, we present the cost-aware experimental design framework of @Mareis_Drton_2026 to two estimation problems:
 
-## Loading the Data
+-  back-door estimation of the direct effect of ***Mek*** on ***Erk***, and
 
-Create an R environment and save it in the file `renv.lock` with `renv::init()` and `renv::snapshot()`. For detailed information, see the [renv website](https://rstudio.github.io/renv/articles/renv.html).
-Load the R environment with our standardized loading function.
-```{r, message=TRUE, warning=TRUE, eval=FALSE}
-# activate the chunk with eval=TRUE
-source("../../load_environment.R")
+-  front-door estimation of the total causal effect of ***Mek*** on ***Akt***.
+
+While sampling, every unit contributes a baseline observation $(x_C, x_t)$; the experimenter then decides whether to additionally measure $x_M$ and, in the front-door case, $x_r$. The optimal design assigns unit-specific sampling probabilities $(\pi_1(x_C, x_t),\, \pi_2(x_C, x_t, x_M))$: units with high information-to-cost ratios for $\beta_{Mt}$ or $\beta_{rM}$ are measured more intensively, while others are subsampled. This yields a strictly lower asymptotic estimation variance than full measurement at equal total cost.
+
+The following application computes this optimal design and reports the resulting efficiency gains, beginning with the simpler single-stage back-door problem before extending to the two-stage front-door setting.
+
+
+## Problem: Cost-Aware Causal Effect Estimation
+
+![Causal graph (left) and two-stage sampling procedure (right) for the linear front-door model. Arrows encode direct linear effects; the double-headed arc represents unobserved confounding between $X_t$ and $X_r$. The flowchart shows that $x_M$ is measured with probability $\pi_1$ in the first stage, and $x_r$ with probability $\pi_2$ in the second stage. ](DAG.png){#fig-dag fig-align="center" width="90%"}
+
+The linear multivariate front-door model comprises confounders $X_C$, treatment $X_t$, mediator $X_M$, and response $X_r$, related by the structural equation $X = \beta X + \varepsilon$, where $\beta$ is lower-triangular and $\varepsilon$ allows for arbitrary confounding between $\varepsilon_t$ and $\varepsilon_r$; see @fig-dag. Under the front-door condition, requiring every causal path from $X_t$ to $X_r$ to pass through $X_M$, the causal effect reduces to
+$$\xi = \beta_{rM}\beta_{Mt},$$
+identified via the two regressions $X_t \to X_M$ and $X_M \to X_r$, each adjustable by $X_C$.
+
+Data collection proceeds in two stages beyond the always-observed baseline $(x_C, x_t)$ at cost $c_0$. The first stage measures $x_M$ with probability $\pi_1(x_C, x_t)$ at cost $c_1$; the second measures $x_r$ with probability $\pi_2(x_C, x_t, x_M)$ at cost $c_2$. The indicator $\Delta \in \{1, 2, \infty\}$ records the stage reached. The optimal $(\pi_1^*, \pi_2^*)$ minimizes the asymptotic variance $\mathrm{Var}_\infty(\hat\xi;\,\pi)$ over regular asymptotically linear (RAL) estimators, subject to $\mathbb{E}[c_0 + \pi_1 c_1 + \pi_1\pi_2 c_2] = b_0$. The relative efficiency
+$$\frac{\mathrm{Var}_\infty(\hat\xi;\,\pi^*)}{\mathrm{Var}_\infty(\hat\xi;\,1)\cdot\mathrm{scale}},$$
+where scale, or *oversampling*, equalizes total cost, certifies a gain when below 1. 
+
+The front-door factorization $\xi = \beta_{rM}\beta_{Mt}$ decomposes into two regressions: $\beta_{Mt}$ from $(X_C, X_t, X_M)$, which is a self-contained back-door problem; and $\beta_{rM}$ from $(X_C, X_t, X_M, X_r)$, the distinctly front-door component. The optimized back-door design presented below applies to any back-door estimation setting, independent of whether a response $X_r$ is available.
+
+::: {.callout-note title="**Key insight**. Two structural observations motivate cost-aware partial-data designs.
+"}
+
+1. **Partial sufficiency.** Some estimands do not depend on all data columns: $\beta_{Mt}$ requires only $(X_C, X_t, X_M)$ and not $X_r$, while $\beta_{rM}$ additionally requires $X_r$. Estimands with partial column support can be recovered from incompletely observed units without bias, so full measurements are not needed for every unit.
+
+2. **Budget reallocation.** Under a fixed total budget, skipping expensive later stages reduces the per-sample cost, allowing more units to enter the study. The relative efficiency quantifies the trade-off: whether the variance reduction from additional samples outweighs the information lost from partial observations.
+:::
+
+## Sachs Dataset
+
+The Sachs dataset [@Sachs2005] records $n = 853$ simultaneous expression levels of 11 proteins and phospholipids in human T cells under cd3cd28 (CD3/CD28 antibody) stimulation. The ground-truth causal DAG, shown in @fig-sachs, was established through a combination of observational data analysis and targeted perturbation experiments [@Sachs2005; @2208.08247]. For the back-door analysis we use ***PKA*** as confounder ($X_C$), ***Mek*** as treatment ($X_t$), and ***Erk*** as mediator ($X_M$); the front-door analysis additionally uses ***Akt*** as response ($X_r$).
+
+![Ground-truth causal DAG for the Sachs protein-signalling network [@2208.08247]. The front-door condition holds because every causal path from ***Mek*** to ***Akt*** passes through ***Erk***.](Sachs.png){#fig-sachs fig-align="center" width="60%"}
+
+```{r, message = FALSE, warning = FALSE}
+library(knitr)
+#download.file("https://zenodo.org/records/7681811/files/sachs.zip?download=1",
+#              "sachs.zip", mode = "wb")
+#unzip("sachs.zip", files = "Data Files/cd3cd28.csv")
+cd3cd28   <- read.csv(file.path("Data Files", "cd3cd28.csv"))
+Sachs_mat <- as.matrix(cd3cd28)
+n         <- nrow(Sachs_mat)
 ```
 
-Shortly describe the packages that were responsible for the R environment.
-```{r, message=FALSE, eval=FALSE}
-# Used packages, only for information.
-library(package1) # function of package1
-library(package2) # function of package2
+```{r, echo = FALSE}
+knitr::kable(head(cd3cd28[, c("PKA", "Mek", "Erk", "Akt")]),
+             digits  = 2,
+             caption = "First six observations of the four variables used in the analysis (cd3cd28 condition).")
 ```
 
-Load the data. Prefereably from Zenodo:
-```{r, message = FALSE, warning=FALSE, eval=FALSE}
-# Load Data
-zenodo <- ZenodoManager$new(logger = NULL)
-record <- zenodo$getRecordByDOI("10.5281/zenodo.1234567")
-files <- record$listFiles(pretty = TRUE)
-alarm <- as.matrix(read.csv(files[1, 4]))
+## Optimized Design for Back-Door Estimation $\beta_{Mt}$
+
+Cost-aware back-door estimation of $\beta_{Mt}$ relies only on $(X_C, X_t, X_M)$. The sampling decision is: observe $(x_C, x_t)$ at cost $c_0$, then measure $x_M$ with probability $\pi_1(x_C, x_t)$ at additional cost $c_1$.
+
+We apply this methodology with $X_C = \text{PKA}$, $X_t = \text{Mek}$, $X_M = \text{Erk}$, and $c_0 = 2$, $c_1 = 1$. In the Sachs ground-truth DAG, ***PKA*** blocks all back-door paths from ***Mek*** to ***Erk***, satisfying the back-door adjustment criterion.
+
+The companion repository (see resource table) provides implementations for `estimate_parameters`, `compute_moments`, `compute_oif_variance`, `compute_expected_cost`, and `compute_optimal_pi`. The analysis estimates parameters from the observed data, evaluates the asymptotic variance under full measurement, and scans over oversampling levels to compute the relative efficiency.
+
+```{r, include = FALSE}
+download.file(
+  "https://raw.githubusercontent.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design/CleaR2026/Back_Door/function_back_door.R",
+  "functions_back_door.R", mode = "wb")
+writeLines(gsub("X_B", "X_C", readLines("functions_back_door.R")), "functions_back_door.R")
 ```
 
-## Analysis
-
-Write some educational analysis text and carry out the analysis.
-
-```{r}
-mean(c(1 + 2, 3 * 4))
+```{r, message = FALSE, warning = FALSE}
+source("functions_back_door.R")
 ```
 
-Analysis in other languages, e.g., Python are welcome as well. 
-```{python}
--1 / -2
+```{r, message = FALSE, warning = FALSE}
+set.seed(1234)
+data_bd <- data.frame(
+  C   = rep(Inf, n),                         # Delta
+  X_t = Sachs_mat[, 2],                      # Mek
+  X_M = I(Sachs_mat[, 6, drop = FALSE]),     # Erk
+  X_C = I(Sachs_mat[, 8, drop = FALSE])      # PKA
+)
+
+pi1_fun_bd <- function(XCt) rep(1, nrow(XCt))
+c1_fun_bd  <- function(XCt) rep(1, nrow(XCt))
+
+estimates_bd    <- estimate_parameters(data_bd, pi1_fun_bd)
+mom_bd          <- compute_moments(data_bd, estimates_bd, pi1_fun_bd)
+avar_vanilla_bd <- compute_oif_variance(data_bd, estimates_bd, pi1_fun_bd,
+                                        pi1 = rep(1, n))
+cost_vanilla_bd <- compute_expected_cost(rep(1, n), c0 = 2,
+                                         c1_fun_bd(data_bd[, c("X_C", "X_t")]),
+                                         mom_bd$Weight_2inf)
+
+scales_bd   <- seq(1.05, 1.25, by = 0.05)
+rel_effs_bd <- vapply(scales_bd, function(s) {
+  opt      <- compute_optimal_pi(data_bd, estimates_bd,
+                                 c0 = 2, c1_fun = c1_fun_bd,
+                                 b0 = cost_vanilla_bd / s,
+                                 pi1_0_fun = pi1_fun_bd, n_sub = 10000)
+  avar_opt <- compute_oif_variance(data_bd, estimates_bd, pi1_fun_bd,
+                                   pi1 = opt$pi1_star)
+  avar_opt / avar_vanilla_bd / s
+}, numeric(1))
+
+scale_bd   <- 1.15
+rel_eff_bd <- rel_effs_bd[3]
 ```
 
-```{r, message=FALSE, warning=FALSE, eval=FALSE}
-# activate the chunk with eval=TRUE
-source("../../close_environment.R")
+```{r, echo = FALSE}
+knitr::kable(
+  data.frame(Scale = scales_bd, rel_eff = round(rel_effs_bd, 4)),
+  col.names = c("Scale", "Relative Efficiency"),
+  align     = "cc",
+  caption   = "Back-door relative efficiency for estimating the direct effect of Mek on Erk, across oversampling levels."
+)
+```
+
+The table confirms that the partial sampling design achieves a variance reduction at every oversampling level considered. At $15%$ oversampling, it attains a relative efficiency of `r round(rel_eff_bd, 4)`, a `r round((1 - rel_eff_bd) * 100, 1)`% gain over uniform full measurement at equal total budget.
+
+## Optimized Design for Front-Door Estimation of $\xi$
+
+The back-door analysis estimated $\beta_{Mt}$, the direct effect of ***Mek*** on ***Erk***, using only $(X_C, X_t, X_M)$. The front-door setting extends this to the total causal effect $\xi = \beta_{rM}\beta_{Mt}$ of ***Mek*** on ***Akt***, which additionally requires measuring the response $X_r = \text{Akt}$. Since ***PKA*** has a direct edge to ***Akt*** in the Sachs DAG, the pair (***Mek***, ***Akt***) is confounded and the front-door path through ***Erk*** is the identification strategy; see @fig-sachs.
+
+The two-stage design introduces a second propensity $\pi_2(x_C, x_t, x_M)$ governing whether ***Akt*** is measured after ***Erk***. The joint optimization of $(\pi_1^*, \pi_2^*)$ balances the leverage of treatment residuals against mediator residuals under the combined budget constraint, with $X_C = \text{PKA}$, $X_t = \text{Mek}$, $X_M = \text{Erk}$, $X_r = \text{Akt}$, and custom costs $c_0 = 2$, $c_1 = c_2 = 1$.
+
+```{r, include = FALSE}
+download.file(
+  "https://raw.githubusercontent.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design/CleaR2026/functions.R",
+  "functions.R", mode = "wb")
+writeLines(gsub("X_B", "X_C", readLines("functions.R")), "functions.R")
+```
+
+```{r, message = FALSE, warning = FALSE}
+source("functions.R")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Column indices: 2=Mek, 6=Erk, 7=Akt, 8=PKA
+pi1_fun <- function(XCt)  rep(1, nrow(XCt))   # baseline: full measurement
+pi2_fun <- function(XCtM) rep(1, nrow(XCtM))
+c1_fun  <- function(XCt)  rep(1, nrow(XCt))   # unit cost per stage
+c2_fun  <- function(XCtM) rep(1, nrow(XCtM))
+
+set.seed(1234)
+data_fd <- data.frame(
+  C   = rep(Inf, n),                         # Delta
+  X_t = Sachs_mat[, 2],                      # Mek
+  X_M = I(Sachs_mat[, 6, drop = FALSE]),     # Erk
+  X_r = Sachs_mat[, 7],                      # Akt
+  X_C = I(Sachs_mat[, 8, drop = FALSE])      # PKA
+)
+
+# Estimate β_tC, β_Mt, β_MB, β_rM via nested weighted regression
+estimates_fd <- estimate_parameters(data_fd, pi1_fun, pi2_fun)
+beta_Mt_hat  <- as.numeric(estimates_fd$beta_Mt)
+beta_rM_hat  <- as.numeric(estimates_fd$beta_rM)
+```
+
+```{r, echo = FALSE}
+cat(sprintf("beta_Mt (Mek -> Erk): %.4f  (1-unit increase in Mek raises Erk by %.4f units)",
+            beta_Mt_hat, beta_Mt_hat))
+cat(sprintf("beta_rM (Erk -> Akt): %.4f  (1-unit increase in Erk raises Akt by %.4f units)",
+            beta_rM_hat, beta_rM_hat))
+cat(sprintf("Causal effect:  xi = beta_rM * beta_Mt = %.4f * %.4f = %.4f",
+            beta_rM_hat, beta_Mt_hat, beta_rM_hat * beta_Mt_hat))
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Asymptotic variance under full measurement (pi = 1)
+mom_fd          <- compute_moments(data_fd, estimates_fd, pi1_fun, pi2_fun)
+avar_vanilla_fd <- compute_oif_variance(data_fd, estimates_fd, pi1_fun, pi2_fun,
+                                        pi1 = rep(1, n), pi2 = rep(1, n))
+cost_vanilla_fd <- compute_expected_cost(rep(1, n), rep(1, n), c0 = 2,
+                                         c1_fun(data_fd[, c("X_C", "X_t")]),
+                                         c2_fun(data_fd[, c("X_C", "X_t", "X_M")]),
+                                         mom_fd$Weight_2inf)
+
+# Optimal propensity (pi_1*, pi_2*) at 54% oversampling budget
+scale_fd <- 1.54
+opt_fd   <- compute_optimal_pi(data_fd, estimates_fd,
+                               c0 = 2, c1_fun = c1_fun, c2_fun = c2_fun,
+                               b0 = cost_vanilla_fd / scale_fd,
+                               pi1_0_fun = pi1_fun, pi2_0_fun = pi2_fun,
+                               n_sub = 10000)
+
+# Asymptotic variance under optimal design
+avar_opt_fd <- compute_oif_variance(data_fd, estimates_fd, pi1_fun, pi2_fun,
+                                    pi1 = opt_fd$pi12_star[, 1],
+                                    pi2 = opt_fd$pi12_star[, 2])
+rel_eff_fd  <- avar_opt_fd / avar_vanilla_fd / scale_fd
+```
+
+```{r, echo = FALSE}
+cat(sprintf("Front-door | scale = %.2f | relative efficiency = %.4f\n",
+            scale_fd, rel_eff_fd))
+```
+
+The relative efficiency of `r round(rel_eff_fd, 4)` at 54% oversampling corresponds to a `r round((1 - rel_eff_fd) * 100, 1)`% variance reduction. The two-stage propensity achieves this by exploiting both the treatment residual (informative for $\hat\beta_{Mt}$) and the mediator residual (informative for $\hat\beta_{rM}$) to direct measurements selectively across the two stages.
+
+## Summary
+
+Both designs achieve strict efficiency gains at the reported oversampling levels. The larger front-door gain reflects the additional design flexibility available when both $\beta_{Mt}$ and $\beta_{rM}$ are targeted through the two-stage propensity.
+
+```{r, echo = FALSE}
+knitr::kable(
+  data.frame(
+    Problem   = c("Back-door", "Front-door"),
+    Objective = c("Direct effect of ***Mek*** on ***Erk***",
+                  "Causal effect of ***Mek*** on ***Akt***"),
+    Scale     = c(scale_bd, scale_fd),
+    rel_eff   = round(c(rel_eff_bd, rel_eff_fd), 4)
+  ),
+  col.names = c("Problem", "Objective", "Scale", "Relative Efficiency"),
+  align     = "llcc",
+  caption   = "Relative efficiency of the optimal cost-aware design versus full measurement at equal total budget. A relative efficiency below 1 certifies a variance reduction at equal total cost."
+)
 ```
 
 ## Citing this Notebook {.unnumbered}
 
-Please cite XYZ with the following bib item.
-
-``` bibtex
-@article{XYZ
-}
-```
-
-When using the ABC dataset, please give credit to the original author: Author year.
+Please cite @Mareis_Drton_2026. When using the Sachs dataset, please cite @Sachs2005.
 
 ## Additional Information {.unnumbered}
 
-**License Information:** Please follow the above DOI for license information of data and code.
+**License Information:** Please follow the above DOIs for license information of data and code.
 
-**Contact:** If you have suggestions, feel free to [create an issue](https://github.com/username/git-project/issues) or contact the authors (your@mail.address).
+**Contact:** If you have suggestions, feel free to [create an issue](https://github.com/lmareis/Cost-Aware-Optimized-Front-Door-Experimental-Design/issues) or [contact the authors](mailto:leopold.mareis@tum.de?subject=GMCI%20Notebook%20Front-Door%20Design%20Question).
+
+```{latex, include = FALSE}
+\begin{tikzpicture}[scale = 0.6, >=Stealth,
+  node style/.style={scale = 1, minimum height=0.5cm, font=\small}]
+% Nodes
+\node[node style] (B) at (2,2) {$\textrm{PKA}$};
+\node[node style] (t) at (0,0) {$\textrm{Mek}$};
+\node[node style, black!70,  fill=olive!20] (M) at (2,0) {$\textrm{Erk}$};
+\node[node style, black!45, fill=olive!10] (r) at (4,0) {$\textrm{Akt}$};
+
+% PKA edges – muted blue to distinguish from front-door path
+\draw[->, teal!70!black] (B) -- (t);
+\draw[->, teal!70!black] (B) -- (M);
+\draw[->, teal!70!black] (B) -- (r);
+\draw[->] (t) -- (M);
+\draw[->] (M) -- (r);
+\draw[<->, red!60!black, dashed] (t) to [out=-45,in=-135] (r);
+\end{tikzpicture}
+```
+
